@@ -374,7 +374,6 @@ function App() {
               ScoutUp
             </Typography>
 
-            <Chip label="Laravel + React" color="primary" variant="outlined" />
           </Toolbar>
         </AppBar>
 
