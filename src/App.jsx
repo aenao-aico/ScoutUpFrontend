@@ -27,6 +27,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Tabs,
   TextField,
   Toolbar,
@@ -112,6 +113,9 @@ function App() {
   const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
   const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
 
+  const [teamSortBy, setTeamSortBy] = useState('created_at')
+  const [teamSortDirection, setTeamSortDirection] = useState('desc')
+
   const teamsList = teams ?? []
   const playersList = players ?? []
   const loading = teams === null || players === null
@@ -120,6 +124,8 @@ function App() {
                               searchValue = teamSearch,
                               foundedAfterValue = teamFoundedAfter,
                               foundedBeforeValue = teamFoundedBefore,
+                              sortByValue = teamSortBy,
+                              sortDirectionValue = teamSortDirection,
                             } = {}) => {
     const params = new URLSearchParams()
 
@@ -135,6 +141,14 @@ function App() {
 
     if (foundedBeforeValue) {
       params.append('founded_before', foundedBeforeValue)
+    }
+
+    if (sortByValue) {
+      params.append('sort_by', sortByValue)
+    }
+
+    if (sortDirectionValue) {
+      params.append('sort_direction', sortDirectionValue)
     }
 
     const queryString = params.toString()
@@ -193,6 +207,20 @@ function App() {
     }
   }
 
+  const handleTeamSort = async (column) => {
+    const isSameColumn = teamSortBy === column
+    const nextDirection =
+        isSameColumn && teamSortDirection === 'asc' ? 'desc' : 'asc'
+
+    setTeamSortBy(column)
+    setTeamSortDirection(nextDirection)
+
+    await refreshData({
+      sortByValue: column,
+      sortDirectionValue: nextDirection,
+    })
+  }
+
   const handleTeamSearchSubmit = async (event) => {
     event.preventDefault()
 
@@ -203,11 +231,15 @@ function App() {
     setTeamSearch('')
     setTeamFoundedAfter('')
     setTeamFoundedBefore('')
+    setTeamSortBy('created_at')
+    setTeamSortDirection('desc')
 
     await refreshData({
       searchValue: '',
       foundedAfterValue: '',
       foundedBeforeValue: '',
+      sortByValue: 'created_at',
+      sortDirectionValue: 'desc',
     })
   }
 
@@ -648,10 +680,46 @@ function App() {
                               <Table>
                                 <TableHead>
                                   <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>City</TableCell>
-                                    <TableCell>Stadium</TableCell>
-                                    <TableCell>Founded</TableCell>
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'name'}
+                                          direction={teamSortBy === 'name' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('name')}
+                                      >
+                                        Name
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'city'}
+                                          direction={teamSortBy === 'city' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('city')}
+                                      >
+                                        City
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'stadium'}
+                                          direction={teamSortBy === 'stadium' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('stadium')}
+                                      >
+                                        Stadium
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'founded_year'}
+                                          direction={teamSortBy === 'founded_year' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('founded_year')}
+                                      >
+                                        Founded
+                                      </TableSortLabel>
+                                    </TableCell>
+
                                     <TableCell align="right">Actions</TableCell>
                                   </TableRow>
                                 </TableHead>
