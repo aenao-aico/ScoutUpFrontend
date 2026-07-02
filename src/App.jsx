@@ -77,7 +77,8 @@ const getApiErrorMessage = async (response) => {
 }
 
 const requestJson = async (endpoint, options = {}) => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, options)
+  const url = `${API_BASE_URL}${endpoint}`
+  const response = await fetch(url, options)
 
   if (!response.ok) {
     const errorMessage = await getApiErrorMessage(response)
@@ -86,6 +87,14 @@ const requestJson = async (endpoint, options = {}) => {
 
   if (response.status === 204) {
     return null
+  }
+
+  const contentType = response.headers.get('content-type')
+
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text()
+    console.error('Received non-JSON response:', text)
+    throw new Error(`Server did not return JSON for ${endpoint}. Check the API route.`)
   }
 
   return response.json()
@@ -103,18 +112,25 @@ function App() {
   const [playerFormData, setPlayerFormData] = useState(emptyPlayerForm)
 
   const [teamSearch, setTeamSearch] = useState('')
+  const [playerSearch, setPlayerSearch] = useState('')
+
+  const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
+  const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
+
+  const [playerAgeAfter, setPlayerAgeAfter] = useState('')
+  const [playerAgeBefore, setPlayerAgeBefore] = useState('')
+
+  const [teamSortBy, setTeamSortBy] = useState('created_at')
+  const [teamSortDirection, setTeamSortDirection] = useState('desc')
+
+  const [playerSortBy, setPlayerSortBy] = useState('created_at')
+  const [playerSortDirection, setPlayerSortDirection] = useState('desc')
 
   const [editingTeam, setEditingTeam] = useState(null)
   const [editTeamData, setEditTeamData] = useState(emptyTeamForm)
 
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editPlayerData, setEditPlayerData] = useState(emptyPlayerForm)
-
-  const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
-  const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
-
-  const [teamSortBy, setTeamSortBy] = useState('created_at')
-  const [teamSortDirection, setTeamSortDirection] = useState('desc')
 
   const teamsList = teams ?? []
   const playersList = players ?? []
@@ -128,7 +144,6 @@ function App() {
                               sortDirectionValue = teamSortDirection,
                             } = {}) => {
     const params = new URLSearchParams()
-
     const trimmedSearch = searchValue.trim()
 
     if (trimmedSearch) {
@@ -160,6 +175,45 @@ function App() {
     return `/teams?${queryString}`
   }
 
+  const getPlayersEndpoint = ({
+                                searchValue = playerSearch,
+                                playerAgeAfterValue = playerAgeAfter,
+                                playerAgeBeforeValue = playerAgeBefore,
+                                sortByValue = playerSortBy,
+                                sortDirectionValue = playerSortDirection,
+                              } = {}) => {
+    const params = new URLSearchParams()
+    const trimmedSearch = searchValue.trim()
+
+    if (trimmedSearch) {
+      params.append('search', trimmedSearch)
+    }
+
+    if (playerAgeAfterValue) {
+      params.append('age_after', playerAgeAfterValue)
+    }
+
+    if (playerAgeBeforeValue) {
+      params.append('age_before', playerAgeBeforeValue)
+    }
+
+    if (sortByValue) {
+      params.append('sort_by', sortByValue)
+    }
+
+    if (sortDirectionValue) {
+      params.append('sort_direction', sortDirectionValue)
+    }
+
+    const queryString = params.toString()
+
+    if (!queryString) {
+      return '/players'
+    }
+
+    return `/players?${queryString}`
+  }
+
   useEffect(() => {
     let ignore = false
 
@@ -176,7 +230,7 @@ function App() {
         }
       } catch (error) {
         if (!ignore) {
-          setError('Could not load data. Check if the Laravel backend is running.')
+          setError(error.message || 'Could not load data. Check if the Laravel backend is running.')
         }
 
         console.error(error)
@@ -190,13 +244,16 @@ function App() {
     }
   }, [])
 
-  const refreshData = async (filters = {}) => {
+  const refreshData = async ({
+                               teamFilters = {},
+                               playerFilters = {},
+                             } = {}) => {
     try {
       setError('')
 
       const [teamsData, playersData] = await Promise.all([
-        requestJson(getTeamsEndpoint(filters)),
-        requestJson('/players'),
+        requestJson(getTeamsEndpoint(teamFilters)),
+        requestJson(getPlayersEndpoint(playerFilters)),
       ])
 
       setTeams(teamsData)
@@ -216,12 +273,36 @@ function App() {
     setTeamSortDirection(nextDirection)
 
     await refreshData({
-      sortByValue: column,
-      sortDirectionValue: nextDirection,
+      teamFilters: {
+        sortByValue: column,
+        sortDirectionValue: nextDirection,
+      },
+    })
+  }
+
+  const handlePlayerSort = async (column) => {
+    const isSameColumn = playerSortBy === column
+    const nextDirection =
+        isSameColumn && playerSortDirection === 'asc' ? 'desc' : 'asc'
+
+    setPlayerSortBy(column)
+    setPlayerSortDirection(nextDirection)
+
+    await refreshData({
+      playerFilters: {
+        sortByValue: column,
+        sortDirectionValue: nextDirection,
+      },
     })
   }
 
   const handleTeamSearchSubmit = async (event) => {
+    event.preventDefault()
+
+    await refreshData()
+  }
+
+  const handlePlayerSearchSubmit = async (event) => {
     event.preventDefault()
 
     await refreshData()
@@ -235,11 +316,31 @@ function App() {
     setTeamSortDirection('desc')
 
     await refreshData({
-      searchValue: '',
-      foundedAfterValue: '',
-      foundedBeforeValue: '',
-      sortByValue: 'created_at',
-      sortDirectionValue: 'desc',
+      teamFilters: {
+        searchValue: '',
+        foundedAfterValue: '',
+        foundedBeforeValue: '',
+        sortByValue: 'created_at',
+        sortDirectionValue: 'desc',
+      },
+    })
+  }
+
+  const handleClearPlayerSearch = async () => {
+    setPlayerSearch('')
+    setPlayerAgeAfter('')
+    setPlayerAgeBefore('')
+    setPlayerSortBy('created_at')
+    setPlayerSortDirection('desc')
+
+    await refreshData({
+      playerFilters: {
+        searchValue: '',
+        playerAgeAfterValue: '',
+        playerAgeBeforeValue: '',
+        sortByValue: 'created_at',
+        sortDirectionValue: 'desc',
+      },
     })
   }
 
@@ -307,7 +408,7 @@ function App() {
       setTeamFormData(emptyTeamForm)
       await refreshData()
     } catch (error) {
-      setError('Could not create team.')
+      setError(error.message || 'Could not create team.')
       console.error(error)
     }
   }
@@ -329,7 +430,7 @@ function App() {
       setPlayerFormData(emptyPlayerForm)
       await refreshData()
     } catch (error) {
-      setError('Could not create player.')
+      setError(error.message || 'Could not create player.')
       console.error(error)
     }
   }
@@ -368,7 +469,7 @@ function App() {
       closeEditTeamDialog()
       await refreshData()
     } catch (error) {
-      setError('Could not update team.')
+      setError(error.message || 'Could not update team.')
       console.error(error)
     }
   }
@@ -409,7 +510,7 @@ function App() {
       closeEditPlayerDialog()
       await refreshData()
     } catch (error) {
-      setError('Could not update player.')
+      setError(error.message || 'Could not update player.')
       console.error(error)
     }
   }
@@ -432,7 +533,7 @@ function App() {
 
       await refreshData()
     } catch (error) {
-      setError('Could not delete team.')
+      setError(error.message || 'Could not delete team.')
       console.error(error)
     }
   }
@@ -453,7 +554,7 @@ function App() {
 
       await refreshData()
     } catch (error) {
-      setError('Could not delete player.')
+      setError(error.message || 'Could not delete player.')
       console.error(error)
     }
   }
@@ -477,7 +578,6 @@ function App() {
             <Typography variant="h6" sx={{ fontWeight: 800, flexGrow: 1 }}>
               ScoutUp
             </Typography>
-
           </Toolbar>
         </AppBar>
 
@@ -511,15 +611,17 @@ function App() {
               <Stack
                   direction={{ xs: 'column', sm: 'row' }}
                   spacing={2}
-                  alignItems={{ xs: 'flex-start', sm: 'center' }}
-                  justifyContent="space-between"
+                  sx={{
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    justifyContent: 'space-between',
+                  }}
               >
                 <Stack direction="row" spacing={1}>
                   <Chip icon={<GroupsIcon />} label={`${teamsList.length} teams`} />
                   <Chip icon={<PersonIcon />} label={`${playersList.length} players`} />
                 </Stack>
 
-                <Button variant="outlined" onClick={refreshData}>
+                <Button variant="outlined" onClick={() => refreshData()}>
                   Refresh
                 </Button>
               </Stack>
@@ -547,7 +649,11 @@ function App() {
                   >
                     <Card variant="outlined">
                       <CardContent>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ alignItems: 'center', mb: 2 }}
+                        >
                           <AddIcon color="primary" />
                           <Typography variant="h5" sx={{ fontWeight: 800 }}>
                             Add team
@@ -730,9 +836,11 @@ function App() {
                                         <TableCell sx={{ fontWeight: 700 }}>
                                           {team.name}
                                         </TableCell>
+
                                         <TableCell>{team.city || '-'}</TableCell>
                                         <TableCell>{team.stadium || '-'}</TableCell>
                                         <TableCell>{team.founded_year || '-'}</TableCell>
+
                                         <TableCell align="right">
                                           <IconButton
                                               color="primary"
@@ -769,7 +877,11 @@ function App() {
                   >
                     <Card variant="outlined">
                       <CardContent>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ alignItems: 'center', mb: 2 }}
+                        >
                           <AddIcon color="primary" />
                           <Typography variant="h5" sx={{ fontWeight: 800 }}>
                             Add player
@@ -875,6 +987,54 @@ function App() {
 
                         <Divider sx={{ mb: 2 }} />
 
+                        <Box
+                            component="form"
+                            onSubmit={handlePlayerSearchSubmit}
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: {
+                                xs: '1fr',
+                                md: '1.4fr 1fr 1fr auto auto',
+                              },
+                              gap: 1,
+                              mb: 2,
+                            }}
+                        >
+                          <TextField
+                              label="Search players"
+                              value={playerSearch}
+                              onChange={(event) => setPlayerSearch(event.currentTarget.value)}
+                              placeholder="First name, last name, position or nationality"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Age after"
+                              type="number"
+                              value={playerAgeAfter}
+                              onChange={(event) => setPlayerAgeAfter(event.currentTarget.value)}
+                              placeholder="20"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Age before"
+                              type="number"
+                              value={playerAgeBefore}
+                              onChange={(event) => setPlayerAgeBefore(event.currentTarget.value)}
+                              placeholder="30"
+                              fullWidth
+                          />
+
+                          <Button type="submit" variant="contained">
+                            Apply
+                          </Button>
+
+                          <Button type="button" variant="outlined" onClick={handleClearPlayerSearch}>
+                            Clear
+                          </Button>
+                        </Box>
+
                         {loading ? (
                             <Typography color="text.secondary">Loading players...</Typography>
                         ) : playersList.length === 0 ? (
@@ -888,11 +1048,66 @@ function App() {
                               <Table>
                                 <TableHead>
                                   <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>Team</TableCell>
-                                    <TableCell>Position</TableCell>
-                                    <TableCell>Age</TableCell>
-                                    <TableCell>Nationality</TableCell>
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'first_name'}
+                                          direction={playerSortBy === 'first_name' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('first_name')}
+                                      >
+                                        First Name
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'last_name'}
+                                          direction={playerSortBy === 'last_name' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('last_name')}
+                                      >
+                                        Last Name
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'team_id'}
+                                          direction={playerSortBy === 'team_id' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('team_id')}
+                                      >
+                                        Team
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'position'}
+                                          direction={playerSortBy === 'position' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('position')}
+                                      >
+                                        Position
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'age'}
+                                          direction={playerSortBy === 'age' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('age')}
+                                      >
+                                        Age
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={playerSortBy === 'nationality'}
+                                          direction={playerSortBy === 'nationality' ? playerSortDirection : 'asc'}
+                                          onClick={() => handlePlayerSort('nationality')}
+                                      >
+                                        Nationality
+                                      </TableSortLabel>
+                                    </TableCell>
+
                                     <TableCell align="right">Actions</TableCell>
                                   </TableRow>
                                 </TableHead>
@@ -901,12 +1116,18 @@ function App() {
                                   {playersList.map((player) => (
                                       <TableRow key={player.id} hover>
                                         <TableCell sx={{ fontWeight: 700 }}>
-                                          {player.first_name} {player.last_name}
+                                          {player.first_name}
                                         </TableCell>
+
+                                        <TableCell sx={{ fontWeight: 700 }}>
+                                          {player.last_name}
+                                        </TableCell>
+
                                         <TableCell>{getPlayerTeamName(player)}</TableCell>
                                         <TableCell>{player.position}</TableCell>
                                         <TableCell>{player.age || '-'}</TableCell>
                                         <TableCell>{player.nationality || '-'}</TableCell>
+
                                         <TableCell align="right">
                                           <IconButton
                                               color="primary"
