@@ -82,6 +82,8 @@ function App() {
   const [teamFormData, setTeamFormData] = useState(emptyTeamForm)
   const [playerFormData, setPlayerFormData] = useState(emptyPlayerForm)
 
+  const [teamSearch, setTeamSearch] = useState('')
+
   const [editingTeam, setEditingTeam] = useState(null)
   const [editTeamData, setEditTeamData] = useState(emptyTeamForm)
 
@@ -91,6 +93,16 @@ function App() {
   const teamsList = teams ?? []
   const playersList = players ?? []
   const loading = teams === null || players === null
+
+  const getTeamsEndpoint = (searchValue = teamSearch) => {
+    const trimmedSearch = searchValue.trim()
+
+    if(!trimmedSearch) {
+      return '/teams'
+    }
+
+    return `/teams?search=${encodeURIComponent(trimmedSearch)}`
+  }
 
   useEffect(() => {
     let ignore = false
@@ -122,12 +134,12 @@ function App() {
     }
   }, [])
 
-  const refreshData = async () => {
+  const refreshData = async (searchValue = teamSearch) => {
     try {
       setError('')
 
       const [teamsData, playersData] = await Promise.all([
-        requestJson('/teams'),
+        requestJson(getTeamsEndpoint(searchValue)),
         requestJson('/players'),
       ])
 
@@ -137,6 +149,18 @@ function App() {
       setError('Could not refresh data. Check if the Laravel backend is running.')
       console.error(error)
     }
+  }
+
+  const handleTeamSearchSubmit = async (event) => {
+    console.log('Search clicked:', teamSearch)
+    event.preventDefault()
+    await refreshData(teamSearch)
+  }
+
+  const handleClearTeamSearch = async (
+  ) => {
+    setTeamSearch('')
+    await refreshData('')
   }
 
   const handleTeamInputChange = (event) => {
@@ -514,6 +538,32 @@ function App() {
                         </Typography>
 
                         <Divider sx={{ mb: 2 }} />
+
+                        <Box
+                            component="form"
+                            onSubmit={handleTeamSearchSubmit}
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              mb: 2,
+                            }}
+                        >
+                          <TextField
+                              label="Search teams"
+                              value={teamSearch}
+                              onChange={(event) => setTeamSearch(event.currentTarget.value)}
+                              placeholder="Search by name, city or stadium"
+                              fullWidth
+                          />
+
+                          <Button type="submit" variant="contained">
+                            Search
+                          </Button>
+
+                          <Button type="button" variant="outlined" onClick={handleClearTeamSearch}>
+                            Clear
+                          </Button>
+                        </Box>
 
                         {loading ? (
                             <Typography color="text.secondary">Loading teams...</Typography>
