@@ -57,11 +57,30 @@ const emptyPlayerForm = {
   nationality: '',
 }
 
+const getApiErrorMessage = async (response) => {
+  try {
+    const errorData = await response.json()
+
+    if (response.status === 422 && errorData.errors) {
+      return Object.values(errorData.errors).flat().join(' ')
+    }
+
+    if (errorData.message) {
+      return errorData.message
+    }
+  } catch {
+    return `Request failed with status ${response.status}`
+  }
+
+  return `Request failed with status ${response.status}`
+}
+
 const requestJson = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, options)
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`)
+    const errorMessage = await getApiErrorMessage(response)
+    throw new Error(errorMessage)
   }
 
   if (response.status === 204) {
@@ -90,18 +109,41 @@ function App() {
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editPlayerData, setEditPlayerData] = useState(emptyPlayerForm)
 
+  const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
+  const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
+
   const teamsList = teams ?? []
   const playersList = players ?? []
   const loading = teams === null || players === null
 
-  const getTeamsEndpoint = (searchValue = teamSearch) => {
+  const getTeamsEndpoint = ({
+                              searchValue = teamSearch,
+                              foundedAfterValue = teamFoundedAfter,
+                              foundedBeforeValue = teamFoundedBefore,
+                            } = {}) => {
+    const params = new URLSearchParams()
+
     const trimmedSearch = searchValue.trim()
 
-    if(!trimmedSearch) {
+    if (trimmedSearch) {
+      params.append('search', trimmedSearch)
+    }
+
+    if (foundedAfterValue) {
+      params.append('founded_after', foundedAfterValue)
+    }
+
+    if (foundedBeforeValue) {
+      params.append('founded_before', foundedBeforeValue)
+    }
+
+    const queryString = params.toString()
+
+    if (!queryString) {
       return '/teams'
     }
 
-    return `/teams?search=${encodeURIComponent(trimmedSearch)}`
+    return `/teams?${queryString}`
   }
 
   useEffect(() => {
@@ -134,33 +176,39 @@ function App() {
     }
   }, [])
 
-  const refreshData = async (searchValue = teamSearch) => {
+  const refreshData = async (filters = {}) => {
     try {
       setError('')
 
       const [teamsData, playersData] = await Promise.all([
-        requestJson(getTeamsEndpoint(searchValue)),
+        requestJson(getTeamsEndpoint(filters)),
         requestJson('/players'),
       ])
 
       setTeams(teamsData)
       setPlayers(playersData)
     } catch (error) {
-      setError('Could not refresh data. Check if the Laravel backend is running.')
+      setError(error.message || 'Could not refresh data.')
       console.error(error)
     }
   }
 
   const handleTeamSearchSubmit = async (event) => {
-    console.log('Search clicked:', teamSearch)
     event.preventDefault()
-    await refreshData(teamSearch)
+
+    await refreshData()
   }
 
-  const handleClearTeamSearch = async (
-  ) => {
+  const handleClearTeamSearch = async () => {
     setTeamSearch('')
-    await refreshData('')
+    setTeamFoundedAfter('')
+    setTeamFoundedBefore('')
+
+    await refreshData({
+      searchValue: '',
+      foundedAfterValue: '',
+      foundedBeforeValue: '',
+    })
   }
 
   const handleTeamInputChange = (event) => {
@@ -543,7 +591,11 @@ function App() {
                             component="form"
                             onSubmit={handleTeamSearchSubmit}
                             sx={{
-                              display: 'flex',
+                              display: 'grid',
+                              gridTemplateColumns: {
+                                xs: '1fr',
+                                md: '1.4fr 1fr 1fr auto auto',
+                              },
                               gap: 1,
                               mb: 2,
                             }}
@@ -552,12 +604,30 @@ function App() {
                               label="Search teams"
                               value={teamSearch}
                               onChange={(event) => setTeamSearch(event.currentTarget.value)}
-                              placeholder="Search by name, city or stadium"
+                              placeholder="Name, city or stadium"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Founded after"
+                              type="number"
+                              value={teamFoundedAfter}
+                              onChange={(event) => setTeamFoundedAfter(event.currentTarget.value)}
+                              placeholder="2000"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Founded before"
+                              type="number"
+                              value={teamFoundedBefore}
+                              onChange={(event) => setTeamFoundedBefore(event.currentTarget.value)}
+                              placeholder="2020"
                               fullWidth
                           />
 
                           <Button type="submit" variant="contained">
-                            Search
+                            Apply
                           </Button>
 
                           <Button type="button" variant="outlined" onClick={handleClearTeamSearch}>
