@@ -27,6 +27,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Tabs,
   TextField,
   Toolbar,
@@ -57,11 +58,30 @@ const emptyPlayerForm = {
   nationality: '',
 }
 
+const getApiErrorMessage = async (response) => {
+  try {
+    const errorData = await response.json()
+
+    if (response.status === 422 && errorData.errors) {
+      return Object.values(errorData.errors).flat().join(' ')
+    }
+
+    if (errorData.message) {
+      return errorData.message
+    }
+  } catch {
+    return `Request failed with status ${response.status}`
+  }
+
+  return `Request failed with status ${response.status}`
+}
+
 const requestJson = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, options)
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`)
+    const errorMessage = await getApiErrorMessage(response)
+    throw new Error(errorMessage)
   }
 
   if (response.status === 204) {
@@ -82,15 +102,63 @@ function App() {
   const [teamFormData, setTeamFormData] = useState(emptyTeamForm)
   const [playerFormData, setPlayerFormData] = useState(emptyPlayerForm)
 
+  const [teamSearch, setTeamSearch] = useState('')
+
   const [editingTeam, setEditingTeam] = useState(null)
   const [editTeamData, setEditTeamData] = useState(emptyTeamForm)
 
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editPlayerData, setEditPlayerData] = useState(emptyPlayerForm)
 
+  const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
+  const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
+
+  const [teamSortBy, setTeamSortBy] = useState('created_at')
+  const [teamSortDirection, setTeamSortDirection] = useState('desc')
+
   const teamsList = teams ?? []
   const playersList = players ?? []
   const loading = teams === null || players === null
+
+  const getTeamsEndpoint = ({
+                              searchValue = teamSearch,
+                              foundedAfterValue = teamFoundedAfter,
+                              foundedBeforeValue = teamFoundedBefore,
+                              sortByValue = teamSortBy,
+                              sortDirectionValue = teamSortDirection,
+                            } = {}) => {
+    const params = new URLSearchParams()
+
+    const trimmedSearch = searchValue.trim()
+
+    if (trimmedSearch) {
+      params.append('search', trimmedSearch)
+    }
+
+    if (foundedAfterValue) {
+      params.append('founded_after', foundedAfterValue)
+    }
+
+    if (foundedBeforeValue) {
+      params.append('founded_before', foundedBeforeValue)
+    }
+
+    if (sortByValue) {
+      params.append('sort_by', sortByValue)
+    }
+
+    if (sortDirectionValue) {
+      params.append('sort_direction', sortDirectionValue)
+    }
+
+    const queryString = params.toString()
+
+    if (!queryString) {
+      return '/teams'
+    }
+
+    return `/teams?${queryString}`
+  }
 
   useEffect(() => {
     let ignore = false
@@ -122,21 +190,57 @@ function App() {
     }
   }, [])
 
-  const refreshData = async () => {
+  const refreshData = async (filters = {}) => {
     try {
       setError('')
 
       const [teamsData, playersData] = await Promise.all([
-        requestJson('/teams'),
+        requestJson(getTeamsEndpoint(filters)),
         requestJson('/players'),
       ])
 
       setTeams(teamsData)
       setPlayers(playersData)
     } catch (error) {
-      setError('Could not refresh data. Check if the Laravel backend is running.')
+      setError(error.message || 'Could not refresh data.')
       console.error(error)
     }
+  }
+
+  const handleTeamSort = async (column) => {
+    const isSameColumn = teamSortBy === column
+    const nextDirection =
+        isSameColumn && teamSortDirection === 'asc' ? 'desc' : 'asc'
+
+    setTeamSortBy(column)
+    setTeamSortDirection(nextDirection)
+
+    await refreshData({
+      sortByValue: column,
+      sortDirectionValue: nextDirection,
+    })
+  }
+
+  const handleTeamSearchSubmit = async (event) => {
+    event.preventDefault()
+
+    await refreshData()
+  }
+
+  const handleClearTeamSearch = async () => {
+    setTeamSearch('')
+    setTeamFoundedAfter('')
+    setTeamFoundedBefore('')
+    setTeamSortBy('created_at')
+    setTeamSortDirection('desc')
+
+    await refreshData({
+      searchValue: '',
+      foundedAfterValue: '',
+      foundedBeforeValue: '',
+      sortByValue: 'created_at',
+      sortDirectionValue: 'desc',
+    })
   }
 
   const handleTeamInputChange = (event) => {
@@ -515,6 +619,54 @@ function App() {
 
                         <Divider sx={{ mb: 2 }} />
 
+                        <Box
+                            component="form"
+                            onSubmit={handleTeamSearchSubmit}
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: {
+                                xs: '1fr',
+                                md: '1.4fr 1fr 1fr auto auto',
+                              },
+                              gap: 1,
+                              mb: 2,
+                            }}
+                        >
+                          <TextField
+                              label="Search teams"
+                              value={teamSearch}
+                              onChange={(event) => setTeamSearch(event.currentTarget.value)}
+                              placeholder="Name, city or stadium"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Founded after"
+                              type="number"
+                              value={teamFoundedAfter}
+                              onChange={(event) => setTeamFoundedAfter(event.currentTarget.value)}
+                              placeholder="2000"
+                              fullWidth
+                          />
+
+                          <TextField
+                              label="Founded before"
+                              type="number"
+                              value={teamFoundedBefore}
+                              onChange={(event) => setTeamFoundedBefore(event.currentTarget.value)}
+                              placeholder="2020"
+                              fullWidth
+                          />
+
+                          <Button type="submit" variant="contained">
+                            Apply
+                          </Button>
+
+                          <Button type="button" variant="outlined" onClick={handleClearTeamSearch}>
+                            Clear
+                          </Button>
+                        </Box>
+
                         {loading ? (
                             <Typography color="text.secondary">Loading teams...</Typography>
                         ) : teamsList.length === 0 ? (
@@ -528,10 +680,46 @@ function App() {
                               <Table>
                                 <TableHead>
                                   <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>City</TableCell>
-                                    <TableCell>Stadium</TableCell>
-                                    <TableCell>Founded</TableCell>
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'name'}
+                                          direction={teamSortBy === 'name' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('name')}
+                                      >
+                                        Name
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'city'}
+                                          direction={teamSortBy === 'city' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('city')}
+                                      >
+                                        City
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'stadium'}
+                                          direction={teamSortBy === 'stadium' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('stadium')}
+                                      >
+                                        Stadium
+                                      </TableSortLabel>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <TableSortLabel
+                                          active={teamSortBy === 'founded_year'}
+                                          direction={teamSortBy === 'founded_year' ? teamSortDirection : 'asc'}
+                                          onClick={() => handleTeamSort('founded_year')}
+                                      >
+                                        Founded
+                                      </TableSortLabel>
+                                    </TableCell>
+
                                     <TableCell align="right">Actions</TableCell>
                                   </TableRow>
                                 </TableHead>
