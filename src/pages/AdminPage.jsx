@@ -45,6 +45,8 @@ import { Link as RouterLink } from 'react-router-dom'
 import { requestJson } from '../api/apiClient'
 import { useAuth } from '../auth/AuthContext'
 
+import './css/AdminPage.css'
+
 const emptyTeamForm = {
     name: '',
     city: '',
@@ -538,18 +540,21 @@ const AdminPage = () => {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <AppBar position="static" color="transparent" elevation={0}>
-                <Toolbar>
-                    <SportsSoccerIcon color="primary" sx={{ mr: 1.5 }} />
+        <Box className="admin-page">
+            <AppBar position="static"
+                    color="transparent"
+                    elevation={0}
+                    className="admin-appbar">
+                <Toolbar className="admin-toolbar">
+                    <SportsSoccerIcon color="primary" className="admin-logo-icon" />
 
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    <Typography variant="h6" className="admin-logo-text">
                         ScoutUp Admin
                     </Typography>
 
-                    <Box sx={{ flexGrow: 1 }} />
+                    <Box className="admin-toolbar-spacer" />
 
-                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                    <Stack direction="row" spacing={2} className="admin-toolbar-actions">
                         <Button
                             color="inherit"
                             component={RouterLink}
@@ -575,40 +580,37 @@ const AdminPage = () => {
                 </Toolbar>
             </AppBar>
 
-            <Container maxWidth="lg" sx={{ py: 5 }}>
-                <Box sx={{ mb: 4 }}>
+            <Container maxWidth="xl" className="admin-container">
+                <Box className="admin-hero">
                     <Typography
                         variant="overline"
                         color="primary"
-                        sx={{ fontWeight: 800, letterSpacing: 2 }}
+                        className="admin-overline"
                     >
                         Football scouting platform
                     </Typography>
 
-                    <Typography variant="h2" sx={{ fontWeight: 900, mt: 1 }}>
+                    <Typography variant="h2" className="admin-title">
                         ScoutUp Dashboard
                     </Typography>
 
-                    <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="h6" color="text.secondary" className="admin-subtitle">
                         Manage football teams and players from a simple admin dashboard.
                     </Typography>
                 </Box>
 
                 {error && (
-                    <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+                    <Alert severity="error" className="admin-error" onClose={() => setError('')}>
                         {error}
                     </Alert>
                 )}
 
-                <Card sx={{ mb: 3 }}>
+                <Card className="admin-stats-card">
                     <CardContent>
                         <Stack
                             direction={{ xs: 'column', sm: 'row' }}
                             spacing={2}
-                            sx={{
-                                alignItems: { xs: 'flex-start', sm: 'center' },
-                                justifyContent: 'space-between',
-                            }}
+                            className="admin-stats-row"
                         >
                             <Stack direction="row" spacing={1}>
                                 <Chip icon={<GroupsIcon />} label={`${teamsList.length} teams`} />
@@ -626,7 +628,7 @@ const AdminPage = () => {
                     <Tabs
                         value={activeTab}
                         onChange={(_, newValue) => setActiveTab(newValue)}
-                        sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}
+                        className="admin-tabs"
                     >
                         <Tab label="Teams" icon={<GroupsIcon />} iconPosition="start" />
                         <Tab label="Players" icon={<PersonIcon />} iconPosition="start" />
@@ -634,22 +636,16 @@ const AdminPage = () => {
 
                     <CardContent>
                         {activeTab === 0 && (
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: { xs: '1fr', md: '360px 1fr' },
-                                    gap: 3,
-                                }}
-                            >
+                            <Box className="admin-content-grid">
                                 <Card variant="outlined">
                                     <CardContent>
                                         <Stack
                                             direction="row"
                                             spacing={1}
-                                            sx={{ alignItems: 'center', mb: 2 }}
+                                            className="admin-section-title-row"
                                         >
                                             <AddIcon color="primary" />
-                                            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                                            <Typography variant="h5" className="admin-section-title">
                                                 Add team
                                             </Typography>
                                         </Stack>
@@ -709,28 +705,20 @@ const AdminPage = () => {
 
                                 <Card variant="outlined">
                                     <CardContent>
-                                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+                                        <Typography variant="h5" className="admin-section-title">
                                             Teams
                                         </Typography>
 
-                                        <Typography color="text.secondary" sx={{ mb: 2 }}>
+                                        <Typography color="text.secondary" className="admin-section-description">
                                             View, edit and delete football teams.
                                         </Typography>
 
-                                        <Divider sx={{ mb: 2 }} />
+                                        <Divider className="admin-divider" />
 
                                         <Box
                                             component="form"
                                             onSubmit={handleTeamSearchSubmit}
-                                            sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: {
-                                                    xs: '1fr',
-                                                    md: '1.4fr 1fr 1fr auto auto',
-                                                },
-                                                gap: 1,
-                                                mb: 2,
-                                            }}
+                                            className="admin-filter-form"
                                         >
                                             <TextField
                                                 label="Search teams"
@@ -782,7 +770,7 @@ const AdminPage = () => {
                                                 Loading teams...
                                             </Typography>
                                         ) : teamsList.length === 0 ? (
-                                            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+                                            <Paper variant="outlined" className="admin-empty-state">
                                                 <Typography color="text.secondary">
                                                     No teams found. Add your first team.
                                                 </Typography>
@@ -792,7 +780,7 @@ const AdminPage = () => {
                                                 <Table>
                                                     <TableHead>
                                                         <TableRow>
-                                                            <TableCell>
+                                                            <TableCell className="admin-table-bold-cell">
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'name'}
                                                                     direction={
@@ -806,7 +794,7 @@ const AdminPage = () => {
                                                                 </TableSortLabel>
                                                             </TableCell>
 
-                                                            <TableCell>
+                                                            <TableCell className="admin-table-bold-cell">
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'city'}
                                                                     direction={
@@ -820,7 +808,7 @@ const AdminPage = () => {
                                                                 </TableSortLabel>
                                                             </TableCell>
 
-                                                            <TableCell>
+                                                            <TableCell className="admin-table-bold-cell">
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'stadium'}
                                                                     direction={
@@ -834,7 +822,7 @@ const AdminPage = () => {
                                                                 </TableSortLabel>
                                                             </TableCell>
 
-                                                            <TableCell>
+                                                            <TableCell className="admin-table-bold-cell">
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'founded_year'}
                                                                     direction={
@@ -855,7 +843,7 @@ const AdminPage = () => {
                                                     <TableBody>
                                                         {teamsList.map((team) => (
                                                             <TableRow key={team.id} hover>
-                                                                <TableCell sx={{ fontWeight: 700 }}>
+                                                                <TableCell className="admin-table-bold-cell">
                                                                     {team.name}
                                                                 </TableCell>
 
@@ -890,28 +878,22 @@ const AdminPage = () => {
                         )}
 
                         {activeTab === 1 && (
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: { xs: '1fr', md: '360px 1fr' },
-                                    gap: 3,
-                                }}
-                            >
+                            <Box className="admin-content-grid">
                                 <Card variant="outlined">
                                     <CardContent>
                                         <Stack
                                             direction="row"
                                             spacing={1}
-                                            sx={{ alignItems: 'center', mb: 2 }}
+                                            className="admin-section-title-row"
                                         >
                                             <AddIcon color="primary" />
-                                            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                                            <Typography variant="h5" className="admin-section-title">
                                                 Add player
                                             </Typography>
                                         </Stack>
 
                                         {teamsList.length === 0 && (
-                                            <Alert severity="warning" sx={{ mb: 2 }}>
+                                            <Alert severity="warning" className="admin-warning">
                                                 You need to add a team before adding players.
                                             </Alert>
                                         )}
@@ -1003,28 +985,20 @@ const AdminPage = () => {
 
                                 <Card variant="outlined">
                                     <CardContent>
-                                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+                                        <Typography variant="h5" className="admin-section-title">
                                             Players
                                         </Typography>
 
-                                        <Typography color="text.secondary" sx={{ mb: 2 }}>
+                                        <Typography color="text.secondary" className="admin-section-description">
                                             View, edit and delete football players.
                                         </Typography>
 
-                                        <Divider sx={{ mb: 2 }} />
+                                        <Divider className="admin-divider" />
 
                                         <Box
                                             component="form"
                                             onSubmit={handlePlayerSearchSubmit}
-                                            sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: {
-                                                    xs: '1fr',
-                                                    md: '1.4fr 1fr 1fr auto auto',
-                                                },
-                                                gap: 1,
-                                                mb: 2,
-                                            }}
+                                            className="admin-filter-form"
                                         >
                                             <TextField
                                                 label="Search players"
@@ -1076,7 +1050,7 @@ const AdminPage = () => {
                                                 Loading players...
                                             </Typography>
                                         ) : playersList.length === 0 ? (
-                                            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+                                            <Paper variant="outlined" className="admin-empty-state">
                                                 <Typography color="text.secondary">
                                                     No players found. Add your first player.
                                                 </Typography>
@@ -1177,11 +1151,11 @@ const AdminPage = () => {
                                                     <TableBody>
                                                         {playersList.map((player) => (
                                                             <TableRow key={player.id} hover>
-                                                                <TableCell sx={{ fontWeight: 700 }}>
+                                                                <TableCell className="admin-table-bold-cell">
                                                                     {player.first_name}
                                                                 </TableCell>
 
-                                                                <TableCell sx={{ fontWeight: 700 }}>
+                                                                <TableCell className="admin-table-bold-cell">
                                                                     {player.last_name}
                                                                 </TableCell>
 
@@ -1228,7 +1202,7 @@ const AdminPage = () => {
                 <DialogTitle>Edit team</DialogTitle>
 
                 <DialogContent>
-                    <Stack spacing={2} sx={{ mt: 1 }}>
+                    <Stack spacing={2} className="admin-dialog-content">
                         <TextField
                             label="Team name"
                             name="name"
@@ -1282,7 +1256,7 @@ const AdminPage = () => {
                 <DialogTitle>Edit player</DialogTitle>
 
                 <DialogContent>
-                    <Stack spacing={2} sx={{ mt: 1 }}>
+                    <Stack spacing={2} className="admin-dialog-content">
                         <FormControl fullWidth required>
                             <InputLabel>Team</InputLabel>
                             <Select

@@ -1,0 +1,152 @@
+.admin-page {
+    min-height: 100vh;
+    background-color: #020617;
+}
+
+.admin-appbar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-toolbar {
+    gap: 12px;
+}
+
+.admin-logo-icon {
+    margin-right: 12px;
+}
+
+.admin-logo-text {
+    font-weight: 800 !important;
+}
+
+.admin-toolbar-spacer {
+    flex-grow: 1;
+}
+
+.admin-toolbar-actions {
+    align-items: center;
+}
+
+.admin-container {
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.admin-hero {
+    margin-bottom: 32px;
+}
+
+.admin-overline {
+    font-weight: 800 !important;
+    letter-spacing: 2px !important;
+}
+
+.admin-title {
+    font-weight: 900 !important;
+    margin-top: 8px !important;
+}
+
+.admin-subtitle {
+    margin-top: 8px !important;
+}
+
+.admin-error {
+    margin-bottom: 24px;
+}
+
+.admin-stats-card {
+    margin-bottom: 24px;
+}
+
+.admin-stats-row {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.admin-tabs {
+    padding-left: 16px;
+    padding-right: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-content-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+}
+
+.admin-section-title-row {
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.admin-section-title {
+    font-weight: 800 !important;
+}
+
+.admin-section-description {
+    margin-bottom: 16px !important;
+}
+
+.admin-divider {
+    margin-bottom: 16px !important;
+}
+
+.admin-filter-form {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr auto auto;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.admin-empty-state {
+    padding: 32px;
+    text-align: center;
+}
+
+.admin-dialog-content {
+    margin-top: 8px;
+}
+
+.admin-table-bold-cell {
+    font-weight: 700 !important;
+}
+
+@media (max-width: 900px) {
+    .admin-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-container {
+        padding-top: 24px;
+        padding-bottom: 24px;
+    }
+
+    .admin-title {
+        font-size: 2.2rem !important;
+    }
+
+    .admin-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .admin-toolbar-spacer {
+        display: none;
+    }
+
+    .admin-toolbar-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .admin-stats-row {
+        align-items: flex-start;
+    }
+}
