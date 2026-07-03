@@ -1,0 +1,317 @@
+.squad-builder-layout {
+    display: grid;
+    grid-template-columns: 300px minmax(820px, 1fr) 300px;
+    gap: 24px;
+    align-items: start;
+}
+
+.squad-builder-panel-title {
+    font-weight: 800 !important;
+    margin-bottom: 8px !important;
+}
+
+/* Player pool */
+
+.player-pool {
+    padding: 20px;
+    max-height: 920px;
+    overflow: hidden;
+}
+
+.player-pool-list {
+    display: grid;
+    gap: 12px;
+    max-height: 620px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Player card */
+
+.player-card {
+    padding: 12px;
+    cursor: grab;
+    background:
+            linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+    transition:
+            transform 0.15s ease,
+            border-color 0.15s ease,
+            opacity 0.15s ease,
+            box-shadow 0.15s ease;
+}
+
+.player-card:active {
+    cursor: grabbing;
+}
+
+.player-card:hover {
+    border-color: rgba(34, 197, 94, 0.65);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.player-card-dragging {
+    opacity: 0.65;
+    z-index: 30;
+}
+
+.player-card-compact {
+    width: 112px;
+    padding: 6px;
+}
+
+.player-card-header {
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.player-card-position {
+    font-weight: 800 !important;
+}
+
+.player-card-name {
+    font-weight: 900 !important;
+    line-height: 1.05 !important;
+    font-size: 0.9rem !important;
+}
+
+.player-card-tags {
+    flex-wrap: wrap;
+}
+
+/* Pitch */
+
+.football-pitch-wrapper {
+    padding: 20px;
+    min-height: 920px;
+    background:
+            linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.92));
+}
+
+.football-pitch {
+    position: relative;
+    min-height: 880px;
+    min-width: 800px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.26);
+    border-radius: 28px;
+    background:
+            linear-gradient(
+                    90deg,
+                    rgba(34, 197, 94, 0.18) 0%,
+                    rgba(34, 197, 94, 0.12) 50%,
+                    rgba(34, 197, 94, 0.18) 100%
+            ),
+            repeating-linear-gradient(
+                    90deg,
+                    rgba(34, 197, 94, 0.16) 0,
+                    rgba(34, 197, 94, 0.16) 90px,
+                    rgba(22, 163, 74, 0.16) 90px,
+                    rgba(22, 163, 74, 0.16) 180px
+            );
+}
+
+.pitch-line {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.pitch-center-line {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+}
+
+.pitch-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 170px;
+    height: 170px;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.pitch-box {
+    position: absolute;
+    left: 50%;
+    width: 340px;
+    height: 110px;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    transform: translateX(-50%);
+}
+
+.pitch-box-top {
+    top: -2px;
+    border-top: 0;
+}
+
+.pitch-box-bottom {
+    bottom: -2px;
+    border-bottom: 0;
+}
+
+/* Formation slots */
+
+.formation-slot {
+    position: absolute;
+    width: 132px;
+    min-height: 78px;
+    transform: translate(-50%, -50%);
+    padding: 6px;
+    border-color: rgba(255, 255, 255, 0.26) !important;
+    background: rgba(2, 6, 23, 0.72) !important;
+    backdrop-filter: blur(10px);
+}
+
+.formation-slot-over {
+    border-color: rgba(34, 197, 94, 0.9) !important;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.28);
+}
+
+.formation-slot-filled {
+    background: rgba(15, 23, 42, 0.86) !important;
+}
+
+.formation-slot-warning {
+    border-color: rgba(245, 158, 11, 0.85) !important;
+}
+
+.formation-slot-content {
+    align-items: center;
+    text-align: center;
+}
+
+.formation-slot-label {
+    font-weight: 900 !important;
+    color: #86efac;
+    font-size: 0.85rem !important;
+}
+
+.formation-slot .MuiButton-root {
+    min-width: auto;
+    padding: 2px 6px;
+    font-size: 0.72rem;
+}
+
+.formation-slot .MuiButton-startIcon {
+    margin-right: 4px;
+}
+
+.formation-slot .MuiTypography-caption {
+    font-size: 0.72rem;
+}
+
+/* Chemistry */
+
+.chemistry-panel {
+    padding: 20px;
+    min-height: 420px;
+}
+
+.chemistry-score {
+    font-weight: 900 !important;
+}
+
+.chemistry-progress {
+    height: 10px !important;
+    border-radius: 999px;
+}
+
+.chemistry-row {
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Responsive */
+
+@media (max-width: 1300px) {
+    .squad-builder-layout {
+        grid-template-columns: 280px minmax(760px, 1fr) 280px;
+        gap: 18px;
+    }
+
+    .football-pitch-wrapper {
+        min-height: 880px;
+    }
+
+    .football-pitch {
+        min-height: 840px;
+        min-width: 740px;
+    }
+
+    .formation-slot {
+        width: 124px;
+    }
+
+    .player-card-compact {
+        width: 106px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .squad-builder-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .football-pitch-wrapper {
+        min-height: auto;
+        overflow-x: auto;
+    }
+
+    .football-pitch {
+        min-height: 880px;
+        min-width: 780px;
+    }
+
+    .player-pool {
+        max-height: none;
+    }
+
+    .player-pool-list {
+        max-height: 360px;
+    }
+}
+
+@media (max-width: 760px) {
+    .football-pitch-wrapper {
+        padding: 12px;
+        overflow-x: auto;
+    }
+
+    .football-pitch {
+        min-height: 860px;
+        min-width: 760px;
+        border-radius: 20px;
+    }
+
+    .formation-slot {
+        width: 116px;
+        min-height: 74px;
+    }
+
+    .player-card-compact {
+        width: 100px;
+    }
+
+    .player-card-name {
+        font-size: 0.8rem !important;
+    }
+
+    .formation-slot-label {
+        font-size: 0.78rem !important;
+    }
+
+    .pitch-circle {
+        width: 130px;
+        height: 130px;
+    }
+
+    .pitch-box {
+        width: 250px;
+        height: 90px;
+    }
+}

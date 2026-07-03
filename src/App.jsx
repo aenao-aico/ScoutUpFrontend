@@ -5,9 +5,11 @@ import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 import AdminPage from './pages/AdminPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import SquadBuilderPage from './pages/SquadBuilderPage'
 
 const RootRoute = () => {
   const { authChecked, isAuthenticated, isAdmin } = useAuth()
+
 
   if (!authChecked) {
     return (
@@ -30,6 +32,26 @@ const RootRoute = () => {
   return <HomePage />
 }
 
+const AuthenticatedRoute = ({ children }) => {
+    const { authChecked, isAuthenticated } = useAuth()
+
+    if (!authChecked) {
+        return (
+            <Container maxWidth="sm" sx={{ py: 8 }}>
+                <Paper sx={{ p: 4 }}>
+                    <Typography variant="h5">Loading...</Typography>
+                </Paper>
+            </Container>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />
+    }
+
+    return children
+}
+
 const AppRoutes = () => {
   return (
       <Routes>
@@ -45,6 +67,14 @@ const AppRoutes = () => {
               </ProtectedAdminRoute>
             }
         />
+          <Route
+              path="/squads/:squadId"
+              element={
+                  <AuthenticatedRoute>
+                      <SquadBuilderPage />
+                  </AuthenticatedRoute>
+              }
+          />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
