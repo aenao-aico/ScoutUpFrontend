@@ -150,3 +150,16 @@
         align-items: flex-start;
     }
 }
+
+.admin-users-filter-form {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr auto auto;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+    .admin-users-filter-form {
+        grid-template-columns: 1fr;
+    }
+}

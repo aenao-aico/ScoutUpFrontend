@@ -37,10 +37,11 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
-import PersonIcon from '@mui/icons-material/Person'
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer'
 import HomeIcon from '@mui/icons-material/Home'
 import LogoutIcon from '@mui/icons-material/Logout'
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
+import PersonIcon from '@mui/icons-material/Person'
+import SportsSoccerIcon from '@mui/icons-material/SportsSoccer'
 import { Link as RouterLink } from 'react-router-dom'
 import { requestJson } from '../api/apiClient'
 import { useAuth } from '../auth/AuthContext'
@@ -63,6 +64,13 @@ const emptyPlayerForm = {
     nationality: '',
 }
 
+const emptyUserForm = {
+    name: '',
+    email: '',
+    password: '',
+    role: 'user',
+}
+
 const AdminPage = () => {
     const { currentUser, logout } = useAuth()
 
@@ -70,14 +78,17 @@ const AdminPage = () => {
 
     const [teams, setTeams] = useState(null)
     const [players, setPlayers] = useState(null)
+    const [users, setUsers] = useState(null)
 
     const [error, setError] = useState('')
 
     const [teamFormData, setTeamFormData] = useState(emptyTeamForm)
     const [playerFormData, setPlayerFormData] = useState(emptyPlayerForm)
+    const [userFormData, setUserFormData] = useState(emptyUserForm)
 
     const [teamSearch, setTeamSearch] = useState('')
     const [playerSearch, setPlayerSearch] = useState('')
+    const [userSearch, setUserSearch] = useState('')
 
     const [teamFoundedAfter, setTeamFoundedAfter] = useState('')
     const [teamFoundedBefore, setTeamFoundedBefore] = useState('')
@@ -85,11 +96,16 @@ const AdminPage = () => {
     const [playerAgeAfter, setPlayerAgeAfter] = useState('')
     const [playerAgeBefore, setPlayerAgeBefore] = useState('')
 
+    const [userRoleFilter, setUserRoleFilter] = useState('')
+
     const [teamSortBy, setTeamSortBy] = useState('created_at')
     const [teamSortDirection, setTeamSortDirection] = useState('desc')
 
     const [playerSortBy, setPlayerSortBy] = useState('created_at')
     const [playerSortDirection, setPlayerSortDirection] = useState('desc')
+
+    const [userSortBy, setUserSortBy] = useState('created_at')
+    const [userSortDirection, setUserSortDirection] = useState('desc')
 
     const [editingTeam, setEditingTeam] = useState(null)
     const [editTeamData, setEditTeamData] = useState(emptyTeamForm)
@@ -97,9 +113,14 @@ const AdminPage = () => {
     const [editingPlayer, setEditingPlayer] = useState(null)
     const [editPlayerData, setEditPlayerData] = useState(emptyPlayerForm)
 
+    const [editingUser, setEditingUser] = useState(null)
+    const [editUserData, setEditUserData] = useState(emptyUserForm)
+
     const teamsList = teams ?? []
     const playersList = players ?? []
-    const loading = teams === null || players === null
+    const usersList = users ?? []
+
+    const loading = teams === null || players === null || users === null
 
     const getTeamsEndpoint = ({
                                   searchValue = teamSearch,
@@ -179,19 +200,55 @@ const AdminPage = () => {
         return `/players?${queryString}`
     }
 
+    const getUsersEndpoint = ({
+                                  searchValue = userSearch,
+                                  roleValue = userRoleFilter,
+                                  sortByValue = userSortBy,
+                                  sortDirectionValue = userSortDirection,
+                              } = {}) => {
+        const params = new URLSearchParams()
+        const trimmedSearch = searchValue.trim()
+
+        if (trimmedSearch) {
+            params.append('search', trimmedSearch)
+        }
+
+        if (roleValue) {
+            params.append('role', roleValue)
+        }
+
+        if (sortByValue) {
+            params.append('sort_by', sortByValue)
+        }
+
+        if (sortDirectionValue) {
+            params.append('sort_direction', sortDirectionValue)
+        }
+
+        const queryString = params.toString()
+
+        if (!queryString) {
+            return '/users'
+        }
+
+        return `/users?${queryString}`
+    }
+
     useEffect(() => {
         let ignore = false
 
         const loadInitialData = async () => {
             try {
-                const [teamsData, playersData] = await Promise.all([
+                const [teamsData, playersData, usersData] = await Promise.all([
                     requestJson('/teams'),
                     requestJson('/players'),
+                    requestJson('/users'),
                 ])
 
                 if (!ignore) {
                     setTeams(teamsData)
                     setPlayers(playersData)
+                    setUsers(usersData)
                 }
             } catch (error) {
                 if (!ignore) {
@@ -215,17 +272,20 @@ const AdminPage = () => {
     const refreshData = async ({
                                    teamFilters = {},
                                    playerFilters = {},
+                                   userFilters = {},
                                } = {}) => {
         try {
             setError('')
 
-            const [teamsData, playersData] = await Promise.all([
+            const [teamsData, playersData, usersData] = await Promise.all([
                 requestJson(getTeamsEndpoint(teamFilters)),
                 requestJson(getPlayersEndpoint(playerFilters)),
+                requestJson(getUsersEndpoint(userFilters)),
             ])
 
             setTeams(teamsData)
             setPlayers(playersData)
+            setUsers(usersData)
         } catch (error) {
             setError(error.message || 'Could not refresh data.')
             console.error(error)
@@ -264,6 +324,22 @@ const AdminPage = () => {
         })
     }
 
+    const handleUserSort = async (column) => {
+        const isSameColumn = userSortBy === column
+        const nextDirection =
+            isSameColumn && userSortDirection === 'asc' ? 'desc' : 'asc'
+
+        setUserSortBy(column)
+        setUserSortDirection(nextDirection)
+
+        await refreshData({
+            userFilters: {
+                sortByValue: column,
+                sortDirectionValue: nextDirection,
+            },
+        })
+    }
+
     const handleTeamSearchSubmit = async (event) => {
         event.preventDefault()
 
@@ -271,6 +347,12 @@ const AdminPage = () => {
     }
 
     const handlePlayerSearchSubmit = async (event) => {
+        event.preventDefault()
+
+        await refreshData()
+    }
+
+    const handleUserSearchSubmit = async (event) => {
         event.preventDefault()
 
         await refreshData()
@@ -312,6 +394,22 @@ const AdminPage = () => {
         })
     }
 
+    const handleClearUserSearch = async () => {
+        setUserSearch('')
+        setUserRoleFilter('')
+        setUserSortBy('created_at')
+        setUserSortDirection('desc')
+
+        await refreshData({
+            userFilters: {
+                searchValue: '',
+                roleValue: '',
+                sortByValue: 'created_at',
+                sortDirectionValue: 'desc',
+            },
+        })
+    }
+
     const handleTeamInputChange = (event) => {
         const { name, value } = event.target
 
@@ -325,6 +423,15 @@ const AdminPage = () => {
         const { name, value } = event.target
 
         setPlayerFormData((currentData) => ({
+            ...currentData,
+            [name]: value,
+        }))
+    }
+
+    const handleUserInputChange = (event) => {
+        const { name, value } = event.target
+
+        setUserFormData((currentData) => ({
             ...currentData,
             [name]: value,
         }))
@@ -348,6 +455,15 @@ const AdminPage = () => {
         }))
     }
 
+    const handleEditUserInputChange = (event) => {
+        const { name, value } = event.target
+
+        setEditUserData((currentData) => ({
+            ...currentData,
+            [name]: value,
+        }))
+    }
+
     const prepareTeamPayload = (data) => ({
         ...data,
         founded_year: data.founded_year ? Number(data.founded_year) : null,
@@ -358,6 +474,20 @@ const AdminPage = () => {
         team_id: Number(data.team_id),
         age: data.age ? Number(data.age) : null,
     })
+
+    const prepareUserPayload = (data) => {
+        const payload = {
+            name: data.name,
+            email: data.email,
+            role: data.role,
+        }
+
+        if (data.password) {
+            payload.password = data.password
+        }
+
+        return payload
+    }
 
     const handleCreateTeam = async (event) => {
         event.preventDefault()
@@ -399,6 +529,28 @@ const AdminPage = () => {
             await refreshData()
         } catch (error) {
             setError(error.message || 'Could not create player.')
+            console.error(error)
+        }
+    }
+
+    const handleCreateUser = async (event) => {
+        event.preventDefault()
+
+        try {
+            setError('')
+
+            await requestJson('/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(prepareUserPayload(userFormData)),
+            })
+
+            setUserFormData(emptyUserForm)
+            await refreshData()
+        } catch (error) {
+            setError(error.message || 'Could not create user.')
             console.error(error)
         }
     }
@@ -483,6 +635,45 @@ const AdminPage = () => {
         }
     }
 
+    const openEditUserDialog = (user) => {
+        setEditingUser(user)
+        setEditUserData({
+            name: user.name ?? '',
+            email: user.email ?? '',
+            password: '',
+            role: user.role ?? 'user',
+        })
+    }
+
+    const closeEditUserDialog = () => {
+        setEditingUser(null)
+        setEditUserData(emptyUserForm)
+    }
+
+    const handleUpdateUser = async () => {
+        if (!editingUser) {
+            return
+        }
+
+        try {
+            setError('')
+
+            await requestJson(`/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(prepareUserPayload(editUserData)),
+            })
+
+            closeEditUserDialog()
+            await refreshData()
+        } catch (error) {
+            setError(error.message || 'Could not update user.')
+            console.error(error)
+        }
+    }
+
     const handleDeleteTeam = async (teamId) => {
         const confirmed = window.confirm(
             'Are you sure? Deleting a team will also delete its players.',
@@ -529,6 +720,27 @@ const AdminPage = () => {
         }
     }
 
+    const handleDeleteUser = async (userId) => {
+        const confirmed = window.confirm('Are you sure you want to delete this user?')
+
+        if (!confirmed) {
+            return
+        }
+
+        try {
+            setError('')
+
+            await requestJson(`/users/${userId}`, {
+                method: 'DELETE',
+            })
+
+            await refreshData()
+        } catch (error) {
+            setError(error.message || 'Could not delete user.')
+            console.error(error)
+        }
+    }
+
     const getPlayerTeamName = (player) => {
         if (player.team?.name) {
             return player.team.name
@@ -541,10 +753,12 @@ const AdminPage = () => {
 
     return (
         <Box className="admin-page">
-            <AppBar position="static"
-                    color="transparent"
-                    elevation={0}
-                    className="admin-appbar">
+            <AppBar
+                position="static"
+                color="transparent"
+                elevation={0}
+                className="admin-appbar"
+            >
                 <Toolbar className="admin-toolbar">
                     <SportsSoccerIcon color="primary" className="admin-logo-icon" />
 
@@ -569,11 +783,7 @@ const AdminPage = () => {
                             variant="outlined"
                         />
 
-                        <Button
-                            color="inherit"
-                            onClick={logout}
-                            startIcon={<LogoutIcon />}
-                        >
+                        <Button color="inherit" onClick={logout} startIcon={<LogoutIcon />}>
                             Logout
                         </Button>
                     </Stack>
@@ -595,7 +805,7 @@ const AdminPage = () => {
                     </Typography>
 
                     <Typography variant="h6" color="text.secondary" className="admin-subtitle">
-                        Manage football teams and players from a simple admin dashboard.
+                        Manage football teams, players and users from a simple admin dashboard.
                     </Typography>
                 </Box>
 
@@ -615,6 +825,7 @@ const AdminPage = () => {
                             <Stack direction="row" spacing={1}>
                                 <Chip icon={<GroupsIcon />} label={`${teamsList.length} teams`} />
                                 <Chip icon={<PersonIcon />} label={`${playersList.length} players`} />
+                                <Chip icon={<ManageAccountsIcon />} label={`${usersList.length} users`} />
                             </Stack>
 
                             <Button variant="outlined" onClick={() => refreshData()}>
@@ -632,6 +843,7 @@ const AdminPage = () => {
                     >
                         <Tab label="Teams" icon={<GroupsIcon />} iconPosition="start" />
                         <Tab label="Players" icon={<PersonIcon />} iconPosition="start" />
+                        <Tab label="Users" icon={<ManageAccountsIcon />} iconPosition="start" />
                     </Tabs>
 
                     <CardContent>
@@ -723,9 +935,7 @@ const AdminPage = () => {
                                             <TextField
                                                 label="Search teams"
                                                 value={teamSearch}
-                                                onChange={(event) =>
-                                                    setTeamSearch(event.currentTarget.value)
-                                                }
+                                                onChange={(event) => setTeamSearch(event.currentTarget.value)}
                                                 placeholder="Name, city or stadium"
                                                 fullWidth
                                             />
@@ -766,9 +976,7 @@ const AdminPage = () => {
                                         </Box>
 
                                         {loading ? (
-                                            <Typography color="text.secondary">
-                                                Loading teams...
-                                            </Typography>
+                                            <Typography color="text.secondary">Loading teams...</Typography>
                                         ) : teamsList.length === 0 ? (
                                             <Paper variant="outlined" className="admin-empty-state">
                                                 <Typography color="text.secondary">
@@ -784,9 +992,7 @@ const AdminPage = () => {
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'name'}
                                                                     direction={
-                                                                        teamSortBy === 'name'
-                                                                            ? teamSortDirection
-                                                                            : 'asc'
+                                                                        teamSortBy === 'name' ? teamSortDirection : 'asc'
                                                                     }
                                                                     onClick={() => handleTeamSort('name')}
                                                                 >
@@ -798,9 +1004,7 @@ const AdminPage = () => {
                                                                 <TableSortLabel
                                                                     active={teamSortBy === 'city'}
                                                                     direction={
-                                                                        teamSortBy === 'city'
-                                                                            ? teamSortDirection
-                                                                            : 'asc'
+                                                                        teamSortBy === 'city' ? teamSortDirection : 'asc'
                                                                     }
                                                                     onClick={() => handleTeamSort('city')}
                                                                 >
@@ -900,11 +1104,7 @@ const AdminPage = () => {
 
                                         <Box component="form" onSubmit={handleCreatePlayer}>
                                             <Stack spacing={2}>
-                                                <FormControl
-                                                    fullWidth
-                                                    required
-                                                    disabled={teamsList.length === 0}
-                                                >
+                                                <FormControl fullWidth required disabled={teamsList.length === 0}>
                                                     <InputLabel>Team</InputLabel>
                                                     <Select
                                                         label="Team"
@@ -1003,9 +1203,7 @@ const AdminPage = () => {
                                             <TextField
                                                 label="Search players"
                                                 value={playerSearch}
-                                                onChange={(event) =>
-                                                    setPlayerSearch(event.currentTarget.value)
-                                                }
+                                                onChange={(event) => setPlayerSearch(event.currentTarget.value)}
                                                 placeholder="First name, last name, position or nationality"
                                                 fullWidth
                                             />
@@ -1046,9 +1244,7 @@ const AdminPage = () => {
                                         </Box>
 
                                         {loading ? (
-                                            <Typography color="text.secondary">
-                                                Loading players...
-                                            </Typography>
+                                            <Typography color="text.secondary">Loading players...</Typography>
                                         ) : playersList.length === 0 ? (
                                             <Paper variant="outlined" className="admin-empty-state">
                                                 <Typography color="text.secondary">
@@ -1175,6 +1371,247 @@ const AdminPage = () => {
                                                                     <IconButton
                                                                         color="error"
                                                                         onClick={() => handleDeletePlayer(player.id)}
+                                                                    >
+                                                                        <DeleteIcon />
+                                                                    </IconButton>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </Box>
+                        )}
+
+                        {activeTab === 2 && (
+                            <Box className="admin-content-grid">
+                                <Card variant="outlined">
+                                    <CardContent>
+                                        <Stack
+                                            direction="row"
+                                            spacing={1}
+                                            className="admin-section-title-row"
+                                        >
+                                            <AddIcon color="primary" />
+                                            <Typography variant="h5" className="admin-section-title">
+                                                Add user
+                                            </Typography>
+                                        </Stack>
+
+                                        <Box component="form" onSubmit={handleCreateUser}>
+                                            <Stack spacing={2}>
+                                                <TextField
+                                                    label="Name"
+                                                    name="name"
+                                                    value={userFormData.name}
+                                                    onChange={handleUserInputChange}
+                                                    placeholder="John Doe"
+                                                    required
+                                                    fullWidth
+                                                />
+
+                                                <TextField
+                                                    label="Email"
+                                                    name="email"
+                                                    type="email"
+                                                    value={userFormData.email}
+                                                    onChange={handleUserInputChange}
+                                                    placeholder="john@example.com"
+                                                    required
+                                                    fullWidth
+                                                />
+
+                                                <TextField
+                                                    label="Password"
+                                                    name="password"
+                                                    type="password"
+                                                    value={userFormData.password}
+                                                    onChange={handleUserInputChange}
+                                                    placeholder="Minimum 8 characters"
+                                                    required
+                                                    fullWidth
+                                                />
+
+                                                <FormControl fullWidth required>
+                                                    <InputLabel>Role</InputLabel>
+                                                    <Select
+                                                        label="Role"
+                                                        name="role"
+                                                        value={userFormData.role}
+                                                        onChange={handleUserInputChange}
+                                                    >
+                                                        <MenuItem value="user">User</MenuItem>
+                                                        <MenuItem value="admin">Admin</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+
+                                                <Button
+                                                    type="submit"
+                                                    variant="contained"
+                                                    size="large"
+                                                    startIcon={<AddIcon />}
+                                                >
+                                                    Add user
+                                                </Button>
+                                            </Stack>
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+
+                                <Card variant="outlined">
+                                    <CardContent>
+                                        <Typography variant="h5" className="admin-section-title">
+                                            Users
+                                        </Typography>
+
+                                        <Typography color="text.secondary" className="admin-section-description">
+                                            View, edit and delete application users.
+                                        </Typography>
+
+                                        <Divider className="admin-divider" />
+
+                                        <Box
+                                            component="form"
+                                            onSubmit={handleUserSearchSubmit}
+                                            className="admin-users-filter-form"
+                                        >
+                                            <TextField
+                                                label="Search users"
+                                                value={userSearch}
+                                                onChange={(event) => setUserSearch(event.currentTarget.value)}
+                                                placeholder="Name, email or role"
+                                                fullWidth
+                                            />
+
+                                            <FormControl fullWidth>
+                                                <InputLabel>Role</InputLabel>
+                                                <Select
+                                                    label="Role"
+                                                    value={userRoleFilter}
+                                                    onChange={(event) => setUserRoleFilter(event.target.value)}
+                                                >
+                                                    <MenuItem value="">All roles</MenuItem>
+                                                    <MenuItem value="user">User</MenuItem>
+                                                    <MenuItem value="admin">Admin</MenuItem>
+                                                </Select>
+                                            </FormControl>
+
+                                            <Button type="submit" variant="contained">
+                                                Apply
+                                            </Button>
+
+                                            <Button
+                                                type="button"
+                                                variant="outlined"
+                                                onClick={handleClearUserSearch}
+                                            >
+                                                Clear
+                                            </Button>
+                                        </Box>
+
+                                        {loading ? (
+                                            <Typography color="text.secondary">Loading users...</Typography>
+                                        ) : usersList.length === 0 ? (
+                                            <Paper variant="outlined" className="admin-empty-state">
+                                                <Typography color="text.secondary">No users found.</Typography>
+                                            </Paper>
+                                        ) : (
+                                            <TableContainer component={Paper} variant="outlined">
+                                                <Table>
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            <TableCell>
+                                                                <TableSortLabel
+                                                                    active={userSortBy === 'name'}
+                                                                    direction={
+                                                                        userSortBy === 'name' ? userSortDirection : 'asc'
+                                                                    }
+                                                                    onClick={() => handleUserSort('name')}
+                                                                >
+                                                                    Name
+                                                                </TableSortLabel>
+                                                            </TableCell>
+
+                                                            <TableCell>
+                                                                <TableSortLabel
+                                                                    active={userSortBy === 'email'}
+                                                                    direction={
+                                                                        userSortBy === 'email' ? userSortDirection : 'asc'
+                                                                    }
+                                                                    onClick={() => handleUserSort('email')}
+                                                                >
+                                                                    Email
+                                                                </TableSortLabel>
+                                                            </TableCell>
+
+                                                            <TableCell>
+                                                                <TableSortLabel
+                                                                    active={userSortBy === 'role'}
+                                                                    direction={
+                                                                        userSortBy === 'role' ? userSortDirection : 'asc'
+                                                                    }
+                                                                    onClick={() => handleUserSort('role')}
+                                                                >
+                                                                    Role
+                                                                </TableSortLabel>
+                                                            </TableCell>
+
+                                                            <TableCell>
+                                                                <TableSortLabel
+                                                                    active={userSortBy === 'created_at'}
+                                                                    direction={
+                                                                        userSortBy === 'created_at'
+                                                                            ? userSortDirection
+                                                                            : 'asc'
+                                                                    }
+                                                                    onClick={() => handleUserSort('created_at')}
+                                                                >
+                                                                    Created
+                                                                </TableSortLabel>
+                                                            </TableCell>
+
+                                                            <TableCell align="right">Actions</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+
+                                                    <TableBody>
+                                                        {usersList.map((user) => (
+                                                            <TableRow key={user.id} hover>
+                                                                <TableCell className="admin-table-bold-cell">
+                                                                    {user.name}
+                                                                </TableCell>
+
+                                                                <TableCell>{user.email}</TableCell>
+
+                                                                <TableCell>
+                                                                    <Chip
+                                                                        label={user.role}
+                                                                        color={user.role === 'admin' ? 'primary' : 'default'}
+                                                                        size="small"
+                                                                    />
+                                                                </TableCell>
+
+                                                                <TableCell>
+                                                                    {user.created_at
+                                                                        ? new Date(user.created_at).toLocaleDateString()
+                                                                        : '-'}
+                                                                </TableCell>
+
+                                                                <TableCell align="right">
+                                                                    <IconButton
+                                                                        color="primary"
+                                                                        onClick={() => openEditUserDialog(user)}
+                                                                    >
+                                                                        <EditIcon />
+                                                                    </IconButton>
+
+                                                                    <IconButton
+                                                                        color="error"
+                                                                        onClick={() => handleDeleteUser(user.id)}
+                                                                        disabled={currentUser?.id === user.id}
                                                                     >
                                                                         <DeleteIcon />
                                                                     </IconButton>
@@ -1322,6 +1759,68 @@ const AdminPage = () => {
                 <DialogActions>
                     <Button onClick={closeEditPlayerDialog}>Cancel</Button>
                     <Button variant="contained" onClick={handleUpdatePlayer}>
+                        Save changes
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(editingUser)}
+                onClose={closeEditUserDialog}
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle>Edit user</DialogTitle>
+
+                <DialogContent>
+                    <Stack spacing={2} className="admin-dialog-content">
+                        <TextField
+                            label="Name"
+                            name="name"
+                            value={editUserData.name}
+                            onChange={handleEditUserInputChange}
+                            required
+                            fullWidth
+                        />
+
+                        <TextField
+                            label="Email"
+                            name="email"
+                            type="email"
+                            value={editUserData.email}
+                            onChange={handleEditUserInputChange}
+                            required
+                            fullWidth
+                        />
+
+                        <TextField
+                            label="New password"
+                            name="password"
+                            type="password"
+                            value={editUserData.password}
+                            onChange={handleEditUserInputChange}
+                            placeholder="Leave empty to keep current password"
+                            fullWidth
+                        />
+
+                        <FormControl fullWidth required>
+                            <InputLabel>Role</InputLabel>
+                            <Select
+                                label="Role"
+                                name="role"
+                                value={editUserData.role}
+                                onChange={handleEditUserInputChange}
+                            >
+                                <MenuItem value="user">User</MenuItem>
+                                <MenuItem value="admin">Admin</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Stack>
+                </DialogContent>
+
+                <DialogActions>
+                    <Button onClick={closeEditUserDialog}>Cancel</Button>
+                    <Button variant="contained" onClick={handleUpdateUser}>
                         Save changes
                     </Button>
                 </DialogActions>
